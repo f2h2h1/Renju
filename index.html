@@ -16,7 +16,7 @@
         <tr>
             <td>
                 <div id="container">
-                    <canvas id="coordiv" width="800" height="800" style="border:1px solid #c3c3c3;"></canvas>
+                    <canvas id="coordiv" style="border:1px solid #c3c3c3;"></canvas>
                     <br />
                     <div id="xycoordinates"></div>
                 </div>
@@ -25,7 +25,7 @@
                 <div id="consolebutton">
                     &nbsp;<button onclick="start_single_game()">单人游戏</button> &nbsp;
                     <button onclick="start_double_game()">双人游戏</button> &nbsp;
-                    <button>载入游戏</button>
+                    <button onclick="revoked()">悔棋</button>
                 </div>
             </td>
         </tr>
@@ -57,8 +57,11 @@
             player1: 0, // 玩家1
             player2: 0, // 玩家2
             npc: 0, // 电脑
-            game_history: [] // 表示游戏历史
-
+            game_history: [], // 表示游戏历史
+            game_role: {
+                black: null,
+                white: null
+            }
         };
 
         // 绘制棋盘
@@ -148,9 +151,13 @@
             if (r == true) { // 玩家选择了黑棋
                 alert("玩家选择了黑棋");
                 player_color = 1;
+                game_data.game_role.black = "player1";
+                game_data.game_role.white = "npc";
             } else { // 玩家选择了白棋
                 alert("玩家选择了白棋");
                 player_color = 0;
+                game_data.game_role.black = "npc";
+                game_data.game_role.white = "player1";
             }
             // 初始化游戏数据
             init_game_data();
@@ -164,17 +171,14 @@
             game_data.npc = (player_color == 0) ? 1 : 2; // 电脑
             console.log("单人游戏");
             if (game_data.npc == 1) {
-                npc_compute(); // 电脑下棋
-                // change_game_status(); // 修改游戏状态
+                npc_move(); // 电脑下棋
             }
         }
 
         // 双人游戏
         function start_double_game() {
-            // if (game_data.game_mode != 0) {
             // 初始化游戏数据
             init_game_data();
-            // }
             // 表示游戏，0表示未选择，1表示单人游戏，2表示双人游戏
             game_data.game_mode = 2;
             // 表示游戏状态，0表示未开始，1表示轮到黑色，2表示轮到白色
@@ -183,78 +187,46 @@
             game_data.player1 = 1; // 玩家1
             game_data.player2 = 2; // 玩家2
             game_data.npc = 0; // 电脑
+            game_data.game_role.black = "player1";
+            game_data.game_role.white = "player2";
             console.log("双人游戏");
         }
 
         // 响应鼠标在canvas上的点击
         c.onclick = function(e) {
-                let pieces_location; // 棋子在棋盘上的坐标
-                // 获取鼠标在canvas上的坐标
-                x = e.offsetX; // 获取鼠标在canvas上x轴的坐标
-                y = e.offsetY; // 获取鼠标在canvas上y轴的坐标
-                // 设置有效响应位置
-                if (x > (fistpoint - piecessize) &&
-                    x < (boxnumber * boxsize + fistpoint + piecessize) &&
-                    y > (fistpoint - piecessize) &&
-                    y < (boxnumber * boxsize + fistpoint + piecessize)) {
-                    console.log("有效响应位置 " + x + " " + y);
-                    pieces_location = compute_pieces_location(x, y); // 获取鼠标点击的位置在棋盘上对应的坐标
-                    // 判断当前鼠标点击的位置是否已经有棋子
-                    if (0 == is_there_pieces(pieces_location)) { // 这个位置没有棋子
-                        if (game_data.game_mode == 2) { // 双人游戏
-                            draw_pieces(pieces_location[0], pieces_location[1], game_data.game_status); // 绘制棋子到棋盘上
-                            pieces_location.push(game_data.game_status); // 在代表棋子位置的数组里添加代表棋子颜色的值
-                            game_data.game_history.push(pieces_location); // 更新游戏历史
-                            let flg = is_win(game_data.game_history, pieces_location); // 判断是否赢了
-                            if (flg == 1) { // 赢了
-                                if (game_data.game_status == 1) {
-                                    alert("黑棋胜");
-                                } else if (game_data.game_status == 2) {
-                                    alert("白棋胜");
-                                }
-                                // init_game_data(); // 初始化游戏数据
-                                game_data.game_mode = 0;
-                            } else if (flg == 2) { // 和棋
-                                alert("和棋");
-                                init_game_data(); // 初始化游戏数据
-                            } else { // 没有赢
-                                change_game_status(); // 修改游戏状态
-                            }
-                        } else if (game_data.game_mode == 1) { // 单人游戏
-                            if (game_data.player1 == 1) { // 判断是否轮到玩家
-                                draw_pieces(pieces_location[0], pieces_location[1], game_data.game_status); // 绘制棋子到棋盘上
-                                pieces_location.push(game_data.game_status); // 在代表棋子位置的数组里添加代表棋子颜色的值
-                                game_data.game_history.push(pieces_location); // 更新游戏历史
-                                let flg = is_win(game_data.game_history, pieces_location); // 判断是否赢了
-                                if (flg == 1) { // 赢了
-                                    if (game_data.game_status == 1) {
-                                        alert("黑棋胜");
-                                    } else if (game_data.game_status == 2) {
-                                        alert("白棋胜");
-                                    }
-                                    // init_game_data(); // 初始化游戏数据
-                                    game_data.game_mode = 0;
-                                } else if (flg == 2) { // 和棋
-                                    alert("和棋");
-                                    // init_game_data(); // 初始化游戏数据
-                                    game_data.game_mode = 0;
-                                } else { // 没有赢
-                                    change_game_status(); // 修改游戏状态
-                                    npc_compute(); // 电脑下棋
-                                }
+            let pieces_location; // 棋子在棋盘上的坐标
+            // 获取鼠标在canvas上的坐标
+            x = e.offsetX; // 获取鼠标在canvas上x轴的坐标
+            y = e.offsetY; // 获取鼠标在canvas上y轴的坐标
+            // 设置有效响应位置
+            if (x > (fistpoint - piecessize) &&
+                x < (boxnumber * boxsize + fistpoint + piecessize) &&
+                y > (fistpoint - piecessize) &&
+                y < (boxnumber * boxsize + fistpoint + piecessize)) {
+                console.log("有效响应位置 " + x + " " + y);
+                pieces_location = compute_pieces_location(x, y); // 获取鼠标点击的位置在棋盘上对应的坐标
+                // 判断当前鼠标点击的位置是否已经有棋子
+                if (0 == is_there_pieces(pieces_location)) { // 这个位置没有棋子
+                    if (game_data.game_mode == 2) { // 双人游戏
+                        chess_move(pieces_location); // 下棋
+                        return;
+                    }
+                    if (game_data.game_mode == 1) { // 单人游戏
+                        if (game_data.player1 == 1) { // 判断是否轮到玩家
+                            chess_move(pieces_location); // 下棋
+                            if (game_data.game_mode != 0) { // 如果玩家没有赢，则轮到电脑下棋
+                                npc_move(); // 电脑下棋
                             }
                         }
-                    } else { // 这个位置已有棋子
-
+                        return;
                     }
-                } else {
-                    console.log("无效响应位置 " + x + " " + y);
+                } else { // 这个位置已有棋子
+
                 }
+            } else {
+                console.log("无效响应位置 " + x + " " + y);
             }
-            /* 
-
-
-             */
+        }
 
         // 绘制棋子到棋盘上
         function draw_pieces(piecesx, piecesy, piecescolor) {
@@ -274,10 +246,9 @@
             let piecesy = Math.round((y - fistpoint) / (boxsize));
             return [piecesx, piecesy];
         }
-        // 判断是否赢了
-        function is_win(chessboard, lastpieces) {
-            let chessboard_arr = [game_data.boxnumber + 1]; // 初始化代表棋盘的数组
-            let is_finish = 0; // 用来判断游戏是否已结束的标记
+        // 初始化代表棋盘的数组
+        function init_chessboard_arr(chessboard) {
+            let chessboard_arr = [game_data.boxnumber + 1];
             for (let i = 0; i < game_data.boxnumber + 1; i++) {
                 chessboard_arr[i] = [];
                 for (let j = 0; j < game_data.boxnumber + 1; j++) {
@@ -287,18 +258,25 @@
             for (let i = 0; i < chessboard.length; i++) { // 把游戏的历史记录更新到数组里
                 chessboard_arr[chessboard[i][0]][chessboard[i][1]] = chessboard[i][2];
             }
+            return chessboard_arr;
+        }
+        // 判断是否赢了
+        function is_win(chessboard, lastpieces) {
+            let chessboard_arr = init_chessboard_arr(chessboard); // 初始化代表棋盘的数组
+            let ret = 0; // 用来判断游戏是否已结束的标记
+
             // 通过最后一个落子的位置判断是否赢了
             // 横向
-            if (is_win_row(chessboard_arr, lastpieces) == 1) return 1;
+            if (is_win_row(chessboard_arr, lastpieces) == 1) ret = 1;
             // 纵向
-            if (is_win_col(chessboard_arr, lastpieces) == 1) return 1;
+            if (is_win_col(chessboard_arr, lastpieces) == 1) ret = 1;
             // 斜向1
-            if (is_win_diagonal1(chessboard_arr, lastpieces) == 1) return 1;
+            if (is_win_diagonal1(chessboard_arr, lastpieces) == 1) ret = 1;
             // 斜向2
-            if (is_win_diagonal2(chessboard_arr, lastpieces) == 1) return 1;
+            if (is_win_diagonal2(chessboard_arr, lastpieces) == 1) ret = 1;
             // 判断是否和棋
-            if (is_drawn(chessboard, lastpieces) == 1) return 2;
-            return 0;
+            if (is_drawn(chessboard, lastpieces) == 1) ret = 2;
+            return ret;
         }
         // 判断是否赢了 横向
         function is_win_row(chessboard_arr, lastpieces) {
@@ -404,8 +382,8 @@
                 endx = lastpieces[0] + i;
                 endy = lastpieces[1] + i;
             }
-            // draw_pieces(startx,starty,lastpieces[2]);  
-            // draw_pieces(endx,endy,lastpieces[2]);     
+            // draw_pieces(startx,starty,lastpieces[2]);
+            // draw_pieces(endx,endy,lastpieces[2]);
             for (let i = startx, j = starty; i <= endx && j <= endy; i++, j++) {
                 if (i + 4 > endx || j + 4 > endy) break;
                 if (chessboard_arr[i][j] == lastpieces[2] &&
@@ -458,16 +436,33 @@
                     game_data.player1 = 1;
                     game_data.npc = 2;
                 }
+            } else if (game_data.game_mode == 1) { // 单人模式下修改玩家状态
+                if (game_data.player1 == 1) {
+                    game_data.player1 = 2;
+                    game_data.player2 = 1;
+                } else {
+                    game_data.player1 = 1;
+                    game_data.player2 = 2;
+                }
             }
         }
         // 电脑下棋
-        function npc_compute() {
+        function npc_move() {
             let pieces_location = [];
-            do {
-                pieces_location[0] = Math.round(Math.random() * 14);
-                pieces_location[1] = Math.round(Math.random() * 14);
-            } while (is_there_pieces(pieces_location) != 0);
-
+            if (game_data.game_history.length > 0) {
+                fiveChess = new FiveChess();
+                AI = fiveChess.AI();
+                pieces_location[0] = AI.x;
+                pieces_location[1] = AI.y;
+                console.log(pieces_location);
+            } else {
+                pieces_location[0] = 7;
+                pieces_location[1] = 7;
+            }
+            chess_move(pieces_location); // 下棋
+        }
+        // 下棋
+        function chess_move(pieces_location) {
             draw_pieces(pieces_location[0], pieces_location[1], game_data.game_status); // 绘制棋子到棋盘上
             pieces_location.push(game_data.game_status); // 在代表棋子位置的数组里添加代表棋子颜色的值
             game_data.game_history.push(pieces_location); // 更新游戏历史
@@ -488,6 +483,248 @@
                 change_game_status(); // 修改游戏状态
             }
         }
+        // 悔棋
+        function revoked() {
+            // 如果游戏模式是双人模式则询问是否允许悔棋
+            if (game_data.game_mode == 2) {
+                let r = confirm("是否允许悔棋");
+                if (r == false) {
+                    return;
+                }
+            }
+            // 第一步就需要悔棋的情况
+            if (game_data.game_history.length == 1) {
+                undo(); // 后退一步
+                change_game_status(); // 修改游戏状态
+                return;
+            }
+            if (game_data.npc == 2) {
+                // 如果是单人游戏且是未轮到电脑的情况下则后退两步
+                undo();
+                undo();
+            } else {
+                // 后退一步
+                undo();
+                change_game_status(); // 修改游戏状态
+            }
+        }
+        // 棋局返回到前一步的状态
+        function undo() {
+            // 删除最前一步
+            game_data.game_history.pop();
+            // 重新绘制棋盘
+            draw_background();
+            game_data.game_history.forEach(function(item) {
+                draw_pieces(item[0], item[1], item[2]); // 绘制棋子到棋盘上
+            })
+        }
+        // 保存棋局
+        function save_chessboard() {
+            localStorage.game_data = JSON.stringify(game_data);
+        }
+        // AI
+        var FiveChess = (function() {
+            var CHESSES = {
+                'none': 0,
+                'black': 1,
+                'white': 2
+            };
+
+            var DIRS = [
+                [
+                    [1, 0],
+                    [-1, 0]
+                ],
+                [
+                    [0, 1],
+                    [0, -1]
+                ],
+                [
+                    [1, 1],
+                    [-1, -1]
+                ],
+                [
+                    [1, -1],
+                    [-1, 1]
+                ]
+            ];
+
+            function FiveChess() {
+                var board = [];
+                for (var i = 16; i--;) {
+                    board[i] = [];
+                    for (var j = 16; j--;) {
+                        board[i][j] = CHESSES['none'];
+                    }
+                }
+                this.board = board;
+                this.state = 'black';
+            }
+
+            FiveChess.prototype.hasChess = function(x, y) {
+                return this.board[x][y] !== CHESSES['none'];
+            }
+
+            FiveChess.prototype.drop = function(x, y) {
+                var board = this.board;
+                var state = this.state;
+                if (state === 'end') {
+                    throw new Error('Game ended');
+                }
+                if (this.hasChess(x, y)) {
+                    throw new Error('Chess can not be drop here');
+                }
+                board[x][y] = CHESSES[state];
+                if (this.judge(x, y, state)) {
+                    this.state = 'end';
+                    return state;
+                } else {
+                    this.state = state === 'black' ? 'white' : 'black';
+                    return false;
+                }
+            }
+
+            FiveChess.prototype.judge = function(x, y, color) {
+                var board = this.board;
+                var count;
+                var i, j;
+                var curX, curY;
+                var curDir;
+                for (i = DIRS.length; i--;) {
+                    count = 1;
+                    curDir = DIRS[i];
+                    for (j = 2; j--;) {
+                        curX = x + curDir[j][0];
+                        curY = y + curDir[j][1];
+                        while (board[curX] && board[curY] && board[curX][curY] === CHESSES[color]) {
+                            curX += curDir[j][0];
+                            curY += curDir[j][1];
+                            count++;
+                        }
+                    }
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            FiveChess.prototype.AI = function() {
+                var board = this.board;
+                var state = this.state;
+                var maxX = 0;
+                var maxY = 0;
+                var maxWeight = 0;
+                var i, j, cur;
+
+                let chessboard_arr = init_chessboard_arr(game_data.game_history); // 初始化代表棋盘的数组
+                board = chessboard_arr;
+                this.board = board;
+
+                for (i = 15; i--;) {
+                    for (j = 15; j--;) {
+                        if (board[i][j] !== CHESSES['none']) {
+                            continue;
+                        }
+                        cur = this.computeWeight(i, j, state);
+                        if (cur > maxWeight) {
+                            maxWeight = cur;
+                            maxX = i;
+                            maxY = j;
+                        }
+                    }
+                }
+                return {
+                    x: maxX,
+                    y: maxY
+                };
+            }
+
+            FiveChess.prototype.computeWeight = function(x, y, color) {
+                var weight = 14 - (Math.abs(x - 7) + Math.abs(y - 7));
+                var pointInfo = {};
+                var enermyColor = color === 'black' ? 'white' : 'black';
+
+                for (var i = DIRS.length; i--;) {
+                    pointInfo = this.putDirect(x, y, color, DIRS[i]);
+                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, true);
+                    pointInfo = this.putDirect(x, y, enermyColor, DIRS[i]);
+                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, false);
+                }
+                return weight;
+            };
+
+            FiveChess.prototype.putDirect = function(x, y, color, dir) {
+                var curX, curY;
+                var count = 1;
+                var sides = [false, false];
+                var board = this.board;
+                var j;
+                for (j = 2; j--;) {
+                    curX = x + dir[j][0];
+                    curY = y + dir[j][1];
+                    while (board[curX] && board[curY]) {
+                        if (board[curX][curY] === CHESSES[color]) {
+                            curX += dir[j][0];
+                            curY += dir[j][1];
+                            count++;
+                        } else if (board[curX][curY] === CHESSES['none']) {
+                            sides[j] = true;
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                return {
+                    "count": count,
+                    "sides": sides
+                };
+            }
+
+            FiveChess.prototype.weightStatus = function(count, sides, isAI) {
+                var weight = 0;
+                var both = sides[0] && sides[1];
+                var single = sides[0] || sides[1];
+                switch (count) {
+                    case 1:
+                        if (both) {
+                            weight = isAI ? 15 : 10;
+                        }
+                        break;
+                    case 2:
+                        if (both) {
+                            weight = isAI ? 100 : 50;
+                        } else if (single) {
+                            weight = isAI ? 10 : 5;
+                        }
+                        break;
+                    case 3:
+                        if (both) {
+                            weight = isAI ? 500 : 200;
+                        } else if (single) {
+                            weight = isAI ? 30 : 20;
+                        }
+                        break;
+                    case 4:
+                        if (both) {
+                            weight = isAI ? 5000 : 2000;
+                        } else if (single) {
+                            weight = isAI ? 400 : 100;
+                        }
+                        break;
+                    case 5:
+                        weight = isAI ? 100000 : 10000;
+                        break;
+                    default:
+                        weight = isAI ? 500000 : 250000;
+                        break;
+                }
+                return weight;
+            }
+
+            return FiveChess;
+        }());
     </script>
 </body>
 
