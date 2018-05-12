@@ -2,13 +2,9 @@
 <html>
 
 <head>
+    <title>五子棋</title>
     <meta charset="utf-8" />
     <style type="text/css">
-        body {
-            font-size: 70%;
-            font-family: verdana, helvetica, arial, sans-serif;
-        }
-        
         #consolebutton button {
             min-width: 69.33px;
         }
@@ -23,12 +19,14 @@
             display: block;
         }
         
-        table {
+        #maintable {
+            font-size: 70%;
+            font-family: verdana, helvetica, arial, sans-serif;
             margin: 0 auto;
+            margin-top: 60px;
         }
     </style>
 </head>
-
 <body>
     <table id="maintable" border="1">
         <tr>
@@ -60,13 +58,8 @@
                         </tr>
                     </table>
                 </div>
-                <h3 style="text-align: center;">已保存的棋局列表</h3>
+                <h4 style="text-align: center;">已保存的棋局列表</h4>
                 <div id="save_game_list">
-                    <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
-                    <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
-                    <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
-                    <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
-                    <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
                     <label><input type="radio" name="save_game_name" value="2018-11-11 23:46:437">2018-11-11 23:46:43</label>
                 </div>
             </td>
@@ -276,7 +269,7 @@
                     console.log("无效响应位置 " + x + " " + y);
                 }
             }
-            // 绘制棋子到棋盘上
+        // 绘制棋子到棋盘上
         function draw_pieces(piecesx, piecesy, piecescolor) {
             if (piecescolor == 1) { // 如果piecescolor为1则为黑棋，否则为白棋
                 cxt.fillStyle = "#000000"; // 设置圆点的颜色为黑色
@@ -545,6 +538,12 @@
             if (!is_game_start()) {
                 return;
             }
+            // 询问用户是否认输
+            let r = confirm("是否认输");
+            if (r == false) {
+                return;
+            }
+
             if (game_data.game_status == 1) {
                 alert("黑棋认输");
             } else if (game_data.game_status == 2) {
@@ -553,6 +552,20 @@
             // init_game_data(); // 初始化游戏数据
             game_data.game_mode = 0;
             game_data.game_status = 0;
+        }
+        // 清空棋盘
+        function clear_chessboard() {
+            // 判断棋局是否已开始
+            if (!is_game_start()) {
+                return;
+            }
+            // 询问用户是否清空棋盘
+            let r = confirm("是否清空棋盘");
+            if (r == false) {
+                return;
+            }
+            // 初始化游戏数据
+            init_game_data();
         }
         // 判断棋局是否已开始
         function is_game_start() {
@@ -609,12 +622,12 @@
                 draw_pieces(item[0], item[1], item[2]); // 绘制棋子到棋盘上
             })
         }
+
+        // 已保存的棋局
+        // var save_game_obj = <?=json_encode($save_game_arr)?>;
+
         // 保存棋局
         function save_chessboard() {
-            // localStorage.game_data = JSON.stringify(game_data);
-            // localStorage.setItem('game_data', JSON.stringify(game_data));
-            // let save_game_name = prompt("请输入保存棋局的名称", "Bill Gates");
-
             // 判断棋局是否已开始
             if (!is_game_start()) {
                 return false;
@@ -650,7 +663,8 @@
                     }
                 }
             }
-            localStorage.setItem(save_game_name, JSON.stringify(game_data));
+            let saveinfo = JSON.stringify(game_data);
+            localStorage.setItem(save_game_name, saveinfo);
             return save_game_name;
         }
         // 载入保存的棋局
@@ -671,9 +685,6 @@
         // 获取已保存的棋局的名称
         function get_save_game_name() {
             let save_game_arr = [];
-            // for (let index in localStorage) {
-            //     save_game_arr.push(index);
-            // }
             for (let i = 0; i < localStorage.length; i++) {
                 save_game_arr.push(localStorage.key(i));
             }
@@ -742,26 +753,30 @@
                 'black': 1,
                 'white': 2
             };
-
+            // 方向
             var DIRS = [
+                // 横向 X
                 [
                     [1, 0],
                     [-1, 0]
                 ],
+                // 纵向 Y
                 [
                     [0, 1],
                     [0, -1]
                 ],
+                // 斜向 XY
                 [
                     [1, 1],
                     [-1, -1]
                 ],
+                // 斜向 YX
                 [
                     [1, -1],
                     [-1, 1]
                 ]
             ];
-
+            // 初始化棋盘
             function FiveChess() {
                 var board = [];
                 for (var i = 16; i--;) {
@@ -771,56 +786,13 @@
                     }
                 }
                 this.board = board;
-                this.state = 'black';
+                if (game_data.game_status == 1) {
+                    this.state = 'black';
+                } else if (game_data.game_status == 2) {
+                    this.state = 'white';
+                }
+                
             }
-
-            FiveChess.prototype.hasChess = function(x, y) {
-                return this.board[x][y] !== CHESSES['none'];
-            }
-
-            FiveChess.prototype.drop = function(x, y) {
-                var board = this.board;
-                var state = this.state;
-                if (state === 'end') {
-                    throw new Error('Game ended');
-                }
-                if (this.hasChess(x, y)) {
-                    throw new Error('Chess can not be drop here');
-                }
-                board[x][y] = CHESSES[state];
-                if (this.judge(x, y, state)) {
-                    this.state = 'end';
-                    return state;
-                } else {
-                    this.state = state === 'black' ? 'white' : 'black';
-                    return false;
-                }
-            }
-
-            FiveChess.prototype.judge = function(x, y, color) {
-                var board = this.board;
-                var count;
-                var i, j;
-                var curX, curY;
-                var curDir;
-                for (i = DIRS.length; i--;) {
-                    count = 1;
-                    curDir = DIRS[i];
-                    for (j = 2; j--;) {
-                        curX = x + curDir[j][0];
-                        curY = y + curDir[j][1];
-                        while (board[curX] && board[curY] && board[curX][curY] === CHESSES[color]) {
-                            curX += curDir[j][0];
-                            curY += curDir[j][1];
-                            count++;
-                        }
-                    }
-                    if (count >= 5) {
-                        return true;
-                    }
-                }
-                return false;
-            };
 
             FiveChess.prototype.AI = function() {
                 var board = this.board;
@@ -833,14 +805,14 @@
                 let chessboard_arr = init_chessboard_arr(game_data.game_history); // 初始化代表棋盘的数组
                 board = chessboard_arr;
                 this.board = board;
-
+                // 遍历棋盘
                 for (i = 15; i--;) {
                     for (j = 15; j--;) {
                         if (board[i][j] !== CHESSES['none']) {
                             continue;
                         }
-                        cur = this.computeWeight(i, j, state);
-                        if (cur > maxWeight) {
+                        cur = this.computeWeight(i, j, state); // 计算出每一个空位置的权重
+                        if (cur > maxWeight) { // 权重最大的位置
                             maxWeight = cur;
                             maxX = i;
                             maxY = j;
@@ -852,36 +824,46 @@
                     y: maxY
                 };
             }
-
+            // 计算权重
             FiveChess.prototype.computeWeight = function(x, y, color) {
+                // 基于棋盘位置权重（越靠近棋盘中心权重越大）
                 var weight = 14 - (Math.abs(x - 7) + Math.abs(y - 7));
+                // 某点下子后连子信息
                 var pointInfo = {};
+                // 棋子颜色
                 var enermyColor = color === 'black' ? 'white' : 'black';
-
+                // 计算下子后四个方向的权重
                 for (var i = DIRS.length; i--;) {
                     pointInfo = this.putDirect(x, y, color, DIRS[i]);
-                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, true);
+                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, true); // 计算ai下棋
                     pointInfo = this.putDirect(x, y, enermyColor, DIRS[i]);
-                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, false);
+                    weight += this.weightStatus(pointInfo.count, pointInfo.sides, false); // 计算玩家下棋
                 }
                 return weight;
             };
-
+            // 计算下棋到某个位置后连子的数量和两边截断的情况
             FiveChess.prototype.putDirect = function(x, y, color, dir) {
                 var curX, curY;
-                var count = 1;
-                var sides = [false, false];
+                var count = 1; // 连子数量
+                var sides = [false, false]; // 两边是否截断
                 var board = this.board;
                 var j;
                 for (j = 2; j--;) {
+                    // 向某个方向移动一位
                     curX = x + dir[j][0];
                     curY = y + dir[j][1];
+                    // 判断移动一位后是否存在棋子
                     while (board[curX] && board[curY]) {
                         if (board[curX][curY] === CHESSES[color]) {
+                            // 移动一位后存在棋子且颜色相同
+                            // 继续向某个方向移动一位
                             curX += dir[j][0];
                             curY += dir[j][1];
+                            // 连子数量加一
                             count++;
                         } else if (board[curX][curY] === CHESSES['none']) {
+                            // 移动一位后存在棋子但颜色不相同
+                            // 出现截断
                             sides[j] = true;
                             break;
                         } else {
@@ -894,7 +876,7 @@
                     "sides": sides
                 };
             }
-
+            // 权重方案   活：两边为空可下子，眠：一边为空
             FiveChess.prototype.weightStatus = function(count, sides, isAI) {
                 var weight = 0;
                 var both = sides[0] && sides[1];
@@ -902,32 +884,32 @@
                 switch (count) {
                     case 1:
                         if (both) {
-                            weight = isAI ? 15 : 10;
+                            weight = isAI ? 15 : 10; // 单一
                         }
                         break;
                     case 2:
                         if (both) {
-                            weight = isAI ? 100 : 50;
+                            weight = isAI ? 100 : 50; // 活二
                         } else if (single) {
-                            weight = isAI ? 10 : 5;
+                            weight = isAI ? 10 : 5; // 眠二
                         }
                         break;
                     case 3:
                         if (both) {
-                            weight = isAI ? 500 : 200;
+                            weight = isAI ? 500 : 200; // 活三
                         } else if (single) {
-                            weight = isAI ? 30 : 20;
+                            weight = isAI ? 30 : 20; // 眠三
                         }
                         break;
                     case 4:
                         if (both) {
-                            weight = isAI ? 5000 : 2000;
+                            weight = isAI ? 5000 : 2000; // 活四
                         } else if (single) {
-                            weight = isAI ? 400 : 100;
+                            weight = isAI ? 400 : 100; // 眠四
                         }
                         break;
                     case 5:
-                        weight = isAI ? 100000 : 10000;
+                        weight = isAI ? 100000 : 10000; // 连五
                         break;
                     default:
                         weight = isAI ? 500000 : 250000;
@@ -938,7 +920,6 @@
 
             return FiveChess;
         }());
-    </script>
+</script>
 </body>
-
 </html>
